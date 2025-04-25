@@ -1,11 +1,11 @@
-CREATE OR REPLACE FUNCTION get_records_by_pattern(pattern TEXT)
+CREATE OR REPLACE FUNCTION get_record(pattern TEXT)
 RETURNS TABLE(id INT, user_name TEXT, phone TEXT) AS $$
 BEGIN
     RETURN QUERY
-    SELECT id, user_name, phone
-    FROM phone_book
-    WHERE user_name ILIKE '%' || pattern || '%'
-       OR phone ILIKE '%' || pattern || '%';
+    SELECT pb.id, pb.user_name::TEXT, pb.phone::TEXT
+    FROM PhoneBook pb
+    WHERE pb.user_name ILIKE '%' || pattern || '%'
+       OR pb.phone ILIKE '%' || pattern || '%';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -13,12 +13,12 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE PROCEDURE upsert_user(new_user_name TEXT, new_phone TEXT)
 LANGUAGE plpgsql AS $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM phone_book WHERE user_name = new_user_name) THEN
-        UPDATE phone_book
+    IF EXISTS (SELECT 1 FROM PhoneBook WHERE user_name = new_user_name) THEN
+        UPDATE PhoneBook
         SET phone = new_phone
         WHERE user_name = new_user_name;
     ELSE
-        INSERT INTO phone_book (user_name, phone)
+        INSERT INTO PhoneBook (user_name, phone)
         VALUES (new_user_name, new_phone);
     END IF;
 END;
@@ -36,3 +36,13 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION get_paginated_records(limit_count INT, offset_count INT)
+RETURNS TABLE(id INT, user_name TEXT, phone TEXT) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT pb.id, pb.user_name::TEXT, pb.phone::TEXT
+    FROM PhoneBook pb
+    ORDER BY pb.id
+    LIMIT limit_count OFFSET offset_count;
+END;
+$$ LANGUAGE plpgsql;
